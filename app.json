@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "Gawain",
+    "slug": "gawain",
+    "scheme": "gawain",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gawain.app"
+    },
+    "android": {
+      "package": "com.gawain.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#047857",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "name": "Gawain",
+      "shortName": "Gawain",
+      "themeColor": "#047857",
+      "backgroundColor": "#F4F5F3"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-asset",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Gawain reads when you're busy so it can suggest chores in the gaps between meetings. It never changes your calendar."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Gawain saves where home and your stores are.",
+          "locationAlwaysAndWhenInUsePermission": "Gawain shows your grocery list when you leave home or arrive at a store, even when the app is closed. Your location stays on your phone.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#047857",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#0D0F0E"
+          }
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "description": "Chores that repeat from when you last did them, fitted into the gaps between your meetings. Plus a pantry and grocery list that remind you when you're out."
+  }
+}

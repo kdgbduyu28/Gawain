@@ -1,0 +1,4 @@
+# Single-page app fallback: routes like /product/p36 exist only in the client,
+# so a refresh or shared link must get index.html instead of a 404.
+# 200 (rewrite), not a redirect, so the router still sees the original URL.
+/*    /index.html    200

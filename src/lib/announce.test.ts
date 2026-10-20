@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Announce, DEFAULT_ANNOUNCE, findEntities, haBase, kindOf, shouldAnnounce, speak, speakRequest, spoken } from './announce';
+import { Announce, DEFAULT_ANNOUNCE, findEntities, haBase, kindOf, shouldAnnounce, speak, speakRequest, spoken, switchOn } from './announce';
 import { Busy } from './gaps';
 import { MIN } from './time';
 
@@ -67,13 +67,24 @@ describe('announce', () => {
     expect(await speak(A, 'Hi', false, offline)).toEqual({ ok: false, error: expect.not.stringMatching(/CORS/) });
   });
 
-  it('lists speakers and voices from Home Assistant', async () => {
+  it('switches a plug on', async () => {
+    let sent: { url: string; body: string } | null = null;
+    const fetcher = (async (url: string, init: RequestInit) => {
+      sent = { url, body: String(init.body) };
+      return new Response('[]', { status: 200 });
+    }) as unknown as typeof fetch;
+    expect(await switchOn(A, 'switch.rice_cooker', true, fetcher)).toEqual({ ok: true });
+    expect(sent).toEqual({ url: expect.stringMatching(/\/api\/services\/switch\/turn_on$/), body: '{"entity_id":"switch.rice_cooker"}' });
+  });
+
+  it('lists speakers, voices and plugs from Home Assistant', async () => {
     const states = [
       { entity_id: 'media_player.kitchen', state: 'idle', attributes: { friendly_name: 'Kitchen Sonos' } },
       { entity_id: 'media_player.tv', state: 'unavailable', attributes: { friendly_name: 'Old TV' } },
       { entity_id: 'media_player.bedroom', state: 'off', attributes: {} },
       { entity_id: 'tts.google_en_com', state: 'unknown', attributes: { friendly_name: 'Google en com' } },
       { entity_id: 'light.porch', state: 'on', attributes: {} },
+      { entity_id: 'switch.rice_cooker', state: 'off', attributes: { friendly_name: 'Rice cooker plug' } },
     ];
     expect(await findEntities(A, true, answer(200, states))).toEqual({
       speakers: [
@@ -81,6 +92,7 @@ describe('announce', () => {
         { id: 'media_player.bedroom', name: 'media_player.bedroom' },
       ],
       voices: [{ id: 'tts.google_en_com', name: 'Google en com' }],
+      switches: [{ id: 'switch.rice_cooker', name: 'Rice cooker plug' }],
     });
     expect(await findEntities(A, true, answer(401))).toEqual({ error: expect.stringMatching(/token/) });
   });

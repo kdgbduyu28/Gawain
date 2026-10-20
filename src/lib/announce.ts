@@ -21,9 +21,11 @@ export type Announce = {
   timers: boolean;
   nudges: boolean;
   digest: boolean;
+  /** The rice cooker's smart plug (switch.rice_cooker), switched on at the time a dish needs rice. */
+  ricePlug: string;
 };
 
-export const DEFAULT_ANNOUNCE: Announce = { on: false, url: '', token: '', speaker: '', tts: '', timers: true, nudges: false, digest: true };
+export const DEFAULT_ANNOUNCE: Announce = { on: false, url: '', token: '', speaker: '', tts: '', timers: true, nudges: false, digest: true, ricePlug: '' };
 
 /** "abc.ui.nabu.casa/lovelace/0" → "https://abc.ui.nabu.casa" (Home Assistant always sits at the root). */
 export function haBase(url: string): string {
@@ -98,6 +100,28 @@ export function failure(status: number | null, isWeb: boolean): string {
   return `Home Assistant answered ${status}. Check that the speaker is on.`;
 }
 
+/** The Home Assistant call that switches a plug on. */
+export function switchOnRequest(a: Pick<Announce, 'url' | 'token'>, entity: string): { url: string; init: RequestInit } {
+  return {
+    url: `${haBase(a.url)}/api/services/switch/turn_on`,
+    init: {
+      method: 'POST',
+      headers: { authorization: `Bearer ${a.token.trim()}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ entity_id: entity }),
+    },
+  };
+}
+
+export async function switchOn(a: Pick<Announce, 'url' | 'token'>, entity: string, isWeb: boolean, fetcher: typeof fetch = fetch): Promise<SpeakResult> {
+  const { url, init } = switchOnRequest(a, entity);
+  try {
+    const res = await fetcher(url, init);
+    return res.ok ? { ok: true } : { ok: false, error: failure(res.status, isWeb) };
+  } catch {
+    return { ok: false, error: failure(null, isWeb) };
+  }
+}
+
 export type SpeakResult = { ok: true } | { ok: false; error: string };
 
 export async function speak(a: Announce, message: string, isWeb: boolean, fetcher: typeof fetch = fetch): Promise<SpeakResult> {
@@ -117,7 +141,7 @@ export async function findEntities(
   a: Pick<Announce, 'url' | 'token'>,
   isWeb: boolean,
   fetcher: typeof fetch = fetch,
-): Promise<{ speakers: HaEntity[]; voices: HaEntity[] } | { error: string }> {
+): Promise<{ speakers: HaEntity[]; voices: HaEntity[]; switches: HaEntity[] } | { error: string }> {
   let res: Response;
   try {
     res = await fetcher(`${haBase(a.url)}/api/states`, { headers: { authorization: `Bearer ${a.token.trim()}` } });
@@ -131,5 +155,5 @@ export async function findEntities(
       .filter((s) => typeof s.entity_id === 'string' && s.entity_id.startsWith(`${domain}.`) && s.state !== 'unavailable')
       .map((s) => ({ id: s.entity_id!, name: s.attributes?.friendly_name || s.entity_id! }))
       .sort((x, y) => x.name.localeCompare(y.name));
-  return { speakers: pick('media_player'), voices: pick('tts') };
+  return { speakers: pick('media_player'), voices: pick('tts'), switches: pick('switch') };
 }

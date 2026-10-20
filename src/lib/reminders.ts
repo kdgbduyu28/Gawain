@@ -16,6 +16,8 @@ export type Timer = {
   waitForFinish?: boolean;
   /** Don't remind before this (a finish heard about just now, a little after it happened). */
   remindFrom?: number;
+  /** A Home Assistant switch to turn on at `endsAt` (the rice cooker's smart plug), instead of a "done" reminder. */
+  plug?: string;
 };
 
 export type Planned = { id: string; title: string; body: string; href: string; at: number };
@@ -71,6 +73,11 @@ export function plan(s: PlanInput, now: number): Planned[] {
   const out: Planned[] = [];
 
   for (const t of s.timers) {
+    // A smart plug switches on right on time, meeting or not.
+    if (t.plug) {
+      if (t.endsAt > now) out.push({ id: `plug:${t.id}`, title: t.label, body: 'Switched on through Home Assistant.', href: '/', at: t.endsAt });
+      continue;
+    }
     if (t.waitForFinish) continue;
     const r = timerText(t, s.busy);
     if (r.at > now) out.push({ id: `timer:${t.id}`, title: r.title, body: r.body, href: '/', at: r.at });

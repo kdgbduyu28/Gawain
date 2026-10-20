@@ -8,7 +8,8 @@ import { useHome } from '../store/useHome';
  * does this in WebNotifier.)
  */
 export function Announcer() {
-  const on = useHome((s) => s.settings.announce.on);
+  // Speaking is optional; a rice-cooker plug timer still needs switching on.
+  const on = useHome((s) => s.settings.announce.on || s.timers.some((t) => !!t.plug));
   usePlanTimers(announcePlanned, on);
   return null;
 }

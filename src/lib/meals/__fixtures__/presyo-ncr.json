@@ -1,0 +1,331 @@
+{
+ "area": "130000000",
+ "psa": [
+  {
+   "item": "Chicken, Fully Dressed, Broiler",
+   "unit": "kg",
+   "s": [
+    204.74,
+    200.45,
+    200.07
+   ]
+  },
+  {
+   "item": "Egg, Chicken, Medium",
+   "unit": "pc",
+   "s": [
+    8.21,
+    8.35,
+    8.51
+   ]
+  },
+  {
+   "item": "Pork, Kasim",
+   "unit": "kg",
+   "s": [
+    341.69,
+    339.87,
+    336.42
+   ]
+  },
+  {
+   "item": "Pork, Liempo",
+   "unit": "kg",
+   "s": [
+    397.17,
+    395.21,
+    392.88
+   ]
+  },
+  {
+   "item": "Matured Coconut, Medium",
+   "unit": "pc",
+   "s": [
+    42.46,
+    42.4,
+    42.5
+   ]
+  },
+  {
+   "item": "Whole Corn On The Cob, Yellow",
+   "unit": "kg",
+   "s": [
+    81.66,
+    82.91,
+    90.82
+   ]
+  },
+  {
+   "item": "Rice, Well-milled",
+   "unit": "kg",
+   "s": [
+    52.36,
+    52.36,
+    52.66
+   ]
+  },
+  {
+   "item": "Fish, Tilapia, Medium",
+   "unit": "kg",
+   "s": [
+    157.64,
+    160.4,
+    162.28
+   ]
+  },
+  {
+   "item": "Tomato",
+   "unit": "kg",
+   "s": [
+    113.96,
+    113.22,
+    122.53
+   ]
+  }
+ ],
+ "psaPeriod": "2026-09",
+ "da": [
+  {
+   "item": "Chicken Thigh",
+   "unit": "kg",
+   "spec": null,
+   "s": [
+    240.0,
+    240.0,
+    null,
+    null,
+    240.0
+   ]
+  },
+  {
+   "item": "Chicken Thigh",
+   "unit": "kg",
+   "spec": null,
+   "s": [
+    221.01,
+    224.58,
+    225.99,
+    null,
+    228.63
+   ]
+  },
+  {
+   "item": "Pork Belly (Liempo)",
+   "unit": "kg",
+   "spec": null,
+   "s": [
+    307.92,
+    311.53,
+    306.67,
+    305.51,
+    307.22
+   ]
+  },
+  {
+   "item": "Pork Belly (Liempo)",
+   "unit": "kg",
+   "spec": null,
+   "s": [
+    364.6,
+    366.61,
+    363.82,
+    363.18,
+    364.79
+   ]
+  },
+  {
+   "item": "Cooking Oil (Palm)",
+   "unit": "bottle",
+   "spec": "1 Liter/bottle",
+   "s": [
+    101.4,
+    103.06,
+    100.1,
+    null,
+    102.33
+   ]
+  },
+  {
+   "item": "Cooking Oil (Palm)",
+   "unit": "bottle",
+   "spec": "350 ml/bottle",
+   "s": [
+    40.12,
+    39.99,
+    40.59,
+    null,
+    40.48
+   ]
+  },
+  {
+   "item": "Red Onion",
+   "unit": "kg",
+   "spec": "13-15 pcs/kg",
+   "s": [
+    121.73,
+    122.7,
+    124.61,
+    124.47,
+    124.29
+   ]
+  },
+  {
+   "item": "Red Onion",
+   "unit": "kg",
+   "spec": "Large",
+   "s": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  {
+   "item": "Red Onion",
+   "unit": "kg",
+   "spec": "Medium",
+   "s": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  }
+ ],
+ "daDate": "2026-10-19",
+ "srp": [
+  {
+   "name": "Canned Sardines In Tomato Sauce",
+   "items": [
+    {
+     "item": "Saba Philippines Sardines",
+     "size": "155g",
+     "srp": 21.5
+    },
+    {
+     "item": "Atami Regular Lid",
+     "size": "155g",
+     "srp": 22.5
+    },
+    {
+     "item": "Mikado Regular Lid",
+     "size": "155g",
+     "srp": 22.5
+    },
+    {
+     "item": "King Cup Regular Lid",
+     "size": "155g",
+     "srp": 18.0
+    },
+    {
+     "item": "Mariko Regular Lid",
+     "size": "155g",
+     "srp": 23.75
+    },
+    {
+     "item": "Sallenas Regular Lid",
+     "size": "155g",
+     "srp": 24.75
+    },
+    {
+     "item": "Atami EOC",
+     "size": "155g",
+     "srp": 23.25
+    },
+    {
+     "item": "Mikado EOC",
+     "size": "155g",
+     "srp": 23.25
+    },
+    {
+     "item": "555 Bonus Pack",
+     "size": "155g",
+     "srp": 20.5
+    },
+    {
+     "item": "Lucky 7",
+     "size": "155g",
+     "srp": 20.5
+    },
+    {
+     "item": "Toyo Bonus Green EOC",
+     "size": "155g",
+     "srp": 20.0
+    }
+   ]
+  },
+  {
+   "name": "Bread",
+   "items": [
+    {
+     "item": "Pinoy Pandesal (10pcs./pack)",
+     "size": "250g",
+     "srp": 27.25
+    },
+    {
+     "item": "Pinoy Tasty",
+     "size": "450g",
+     "srp": 44.0
+    }
+   ]
+  },
+  {
+   "name": "Corned Beef",
+   "items": [
+    {
+     "item": "Bingo",
+     "size": "150g",
+     "srp": 23.0
+    },
+    {
+     "item": "El Rancho - SMKT",
+     "size": "150g",
+     "srp": 31.25
+    },
+    {
+     "item": "Winner - SMKT",
+     "size": "150g",
+     "srp": 33.75
+    },
+    {
+     "item": "Star Corned Beef",
+     "size": "150g",
+     "srp": 34.0
+    },
+    {
+     "item": "Young’s Town Premium",
+     "size": "150g",
+     "srp": 34.25
+    },
+    {
+     "item": "Argentina",
+     "size": "150g",
+     "srp": 36.75
+    },
+    {
+     "item": "Argentina",
+     "size": "175g",
+     "srp": 41.75
+    }
+   ]
+  },
+  {
+   "name": "Soy Sauce – Gin / Pet Bottle",
+   "items": [
+    {
+     "item": "Datu Puti",
+     "size": "350ml",
+     "srp": 21.25
+    },
+    {
+     "item": "Silver Swan",
+     "size": "350ml",
+     "srp": 22.25
+    }
+   ]
+  }
+ ],
+ "srpDate": "2026-05-11"
+}

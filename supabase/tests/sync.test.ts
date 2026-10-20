@@ -5,6 +5,10 @@ import type { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { simulatedDevice, tick } from './device';
 import { createDb } from './pg';
+import { makePlan } from '../../src/lib/meals/planner';
+import { NCR, priceBook } from '../../src/lib/meals/prices';
+
+const MEAL_ANSWERS = { shop: 'palengke', area: NCR, adults: 2, kids: 0, meals: ['lunch', 'dinner'], days: [0, 1, 2, 3, 4, 5, 6], equipment: ['stove', 'rice_cooker'], diets: [], cuisines: ['filipino'], vibes: [], allergies: [], dislikes: [], have: [], budget: 3000 } satisfies Parameters<typeof makePlan>[0];
 
 const ME = { id: '00000000-0000-0000-0000-0000000000a1', email: 'me@example.com' };
 const OTHER = { id: '00000000-0000-0000-0000-0000000000b2', email: 'other@example.com' };
@@ -87,6 +91,54 @@ describe('sync between devices', () => {
     await laptop.run();
     expect(laptop.choreNames()).toContain('Trash (phone)');
     expect(phone.choreNames()).toContain('Trash (phone)');
+  });
+
+  it('shares the meal plan, cooked dishes and kitchen stock with the household', async () => {
+    const profile = { ...MEAL_ANSWERS, cooks: ['Tim', 'Ana'] };
+    const plan = makePlan(profile, priceBook(null, 'palengke'), { seed: 4, start: 1 });
+    laptop.useMeals.setState({ profile, plan });
+    await laptop.run();
+    await phone.run();
+    expect(phone.meals().profile?.cooks).toEqual(['Tim', 'Ana']);
+    expect(phone.meals().plan?.slots.map((x) => x.recipeId)).toEqual(plan.slots.map((x) => x.recipeId));
+
+    // The phone adds a dish to Chores; the laptop buys groceries. Both land on both.
+    const slot = plan.slots.find((x) => x.cook)!;
+    const choreId = phone.home().saveChore({ name: 'Cook it', room: 'Kitchen', everyDays: null, minutes: 30, where: 'home' });
+    phone.meals().linkChore(slot.key, choreId);
+    laptop.home().addToList('Tomatoes');
+    const tomatoes = laptop.home().items.find((i) => i.name === 'Tomatoes')!;
+    laptop.home().saveItem({ ...tomatoes, note: '½ kilo' });
+    laptop.home().buy(tomatoes.id);
+    phone.home().addToList('Eggs');
+    phone.home().buy(phone.home().items.find((i) => i.name === 'Eggs')!.id);
+    expect(laptop.meals().stock.tomato.qty).toBe(500);
+    await phone.run();
+    await laptop.run();
+    await phone.run();
+    expect(laptop.meals().chores[slot.key]).toBe(choreId);
+    expect(Object.keys(phone.meals().stock).sort()).toEqual(Object.keys(laptop.meals().stock).sort());
+    expect(phone.meals().stock.tomato.qty).toBe(500);
+
+    // Finishing the Cook chore on the laptop marks the dish cooked everywhere.
+    await laptop.run();
+    laptop.home().markDone(choreId);
+    expect(laptop.meals().cooked).toEqual([slot.key]);
+    await laptop.run();
+    await phone.run();
+    expect(phone.meals().cooked).toEqual([slot.key]);
+
+    // Prices are never uploaded.
+    const rows = await db.query<{ id: string }>('select id from meals where not deleted order by id');
+    expect(rows.rows.map((r) => r.id)).toEqual(expect.arrayContaining(['plan', 'profile', `cook:${slot.key}`, `link:${slot.key}`, 'stock:tomato']));
+    expect(JSON.stringify(rows.rows)).not.toMatch(/book|psaPeriod/);
+
+    // A new plan clears cooked dishes on the other device too.
+    laptop.useMeals.setState({ plan: makePlan(profile, priceBook(null, 'palengke'), { seed: 9, start: 1 }), cooked: [], chores: {} });
+    await laptop.run();
+    await phone.run();
+    expect(phone.meals().cooked).toEqual([]);
+    expect(phone.meals().plan?.seed).toBe(9);
   });
 
   it('asks before combining when a third device already has its own data', async () => {

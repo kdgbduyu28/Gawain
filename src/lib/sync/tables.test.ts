@@ -16,6 +16,7 @@ function state(extra: Partial<Synced> = {}): Synced {
     blocks: [],
     triggers: [],
     settings: { schedule: { workStart: '09:00' }, digest: '08:00', gapNudges: true, theme: 'dark', icsUrls: ['https://secret'] },
+    meals: { profile: null, plan: null, cooked: [], chores: {}, stock: {}, tank: { since: null, size: 11, lasted: [] }, trips: [], bagyoUntil: null },
     ...extra,
   };
 }
@@ -58,5 +59,48 @@ describe('tables', () => {
 
   it('ignores a deleted settings row', () => {
     expect(spec('settings').write(state(), { [SETTINGS_ID]: null })).toEqual({});
+  });
+
+  it('splits the meal planner into rows that merge separately', () => {
+    const profile = { budget: 3000 } as unknown as NonNullable<Synced['meals']['profile']>;
+    const plan = { slots: [], grocery: [] } as unknown as NonNullable<Synced['meals']['plan']>;
+    const s = state({
+      meals: {
+        profile,
+        plan,
+        cooked: ['1-dinner'],
+        chores: { '1-dinner': 'c1' },
+        stock: { tomato: { qty: 500, at: 7 } },
+        tank: { since: 5, size: 11, lasted: [40] },
+        trips: [{ id: 't1', at: 3, by: 'Ana', amount: 850, note: 'Palengke' }],
+        bagyoUntil: 99,
+      },
+    });
+    const rows = spec('meals').rows(s);
+    expect(Object.keys(rows).sort()).toEqual(['bagyo', 'cook:1-dinner', 'link:1-dinner', 'plan', 'profile', 'stock:tomato', 'tank', 'trip:t1']);
+    expect(JSON.parse(rows['trip:t1'])).toEqual({ at: 3, by: 'Ana', amount: 850, note: 'Palengke' });
+    expect(JSON.parse(rows['link:1-dinner'])).toEqual({ chore: 'c1' });
+    const out = spec('meals').write(s, {
+      'cook:1-dinner': null,
+      'cook:2-lunch': '{}',
+      'link:2-lunch': '{"chore":"c2"}',
+      'stock:tomato': null,
+      'stock:egg': '{"at":9,"qty":6}',
+      'stock:bad': '{"qty":"lots"}',
+      plan: null,
+      'trip:t1': null,
+      'trip:t2': '{"at":8,"by":"Tim","amount":420,"note":""}',
+      bagyo: null,
+    }).meals!;
+    expect(out).toEqual({
+      profile,
+      plan: null,
+      cooked: ['2-lunch'],
+      chores: { '1-dinner': 'c1', '2-lunch': 'c2' },
+      stock: { egg: { qty: 6, at: 9 } },
+      tank: { since: 5, size: 11, lasted: [40] },
+      trips: [{ id: 't2', at: 8, by: 'Tim', amount: 420, note: '' }],
+      bagyoUntil: null,
+    });
   });
 });

@@ -1,5 +1,8 @@
 import type { Chore, Done } from '../chores';
 import type { Block } from '../gaps';
+import type { Tank } from '../meals/energy';
+import type { Stock } from '../meals/kitchen';
+import type { Plan, Profile } from '../meals/planner';
 import type { Item } from '../pantry';
 import type { Trigger } from '../smarthome';
 import { Json, stableJson } from './merge';
@@ -12,11 +15,24 @@ export type Synced = {
   blocks: Block[];
   triggers: Trigger[];
   settings: SettingsLike;
+  meals: MealsSynced;
+};
+
+/** The meal planner's shared state (prices stay on each device). */
+export type MealsSynced = {
+  profile: Profile | null;
+  plan: Plan | null;
+  cooked: string[];
+  chores: Record<string, string>;
+  stock: Stock;
+  tank: Tank;
+  trips: { id: string; at: number; by: string; amount: number; note: string }[];
+  bagyoUntil: number | null;
 };
 
 type SettingsLike = { schedule: object; digest: string | null; gapNudges: boolean } & Record<string, unknown>;
 
-export type TableName = 'chores' | 'done_history' | 'items' | 'blocks' | 'triggers' | 'settings';
+export type TableName = 'chores' | 'done_history' | 'items' | 'blocks' | 'triggers' | 'settings' | 'meals';
 
 export type Spec = {
   name: TableName;
@@ -69,6 +85,56 @@ const itemFields = ({ store, ...rest }: Item) => rest;
 const settingsFields = (s: SettingsLike) => ({ schedule: s.schedule, digest: s.digest, gapNudges: s.gapNudges });
 
 export const SETTINGS_ID = 'settings';
+
+const COOKED = '{}';
+
+/** Meal rows by id: profile, plan, tank, bagyo, cook:<slot>, link:<slot>, stock:<ingredient>, trip:<id>. */
+function mealRows(m: MealsSynced): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (m.profile) out.profile = json(m.profile);
+  if (m.plan) out.plan = json(m.plan);
+  for (const k of m.cooked) out[`cook:${k}`] = COOKED;
+  for (const k in m.chores) out[`link:${k}`] = stableJson({ chore: m.chores[k] });
+  for (const id in m.stock) out[`stock:${id}`] = json(m.stock[id]);
+  if (m.tank.since !== null || m.tank.lasted.length) out.tank = json(m.tank);
+  if (m.bagyoUntil) out.bagyo = stableJson({ until: m.bagyoUntil });
+  for (const t of m.trips) out[`trip:${t.id}`] = json(t, ({ id: _id, ...rest }) => rest);
+  return out;
+}
+
+function writeMeals(m: MealsSynced, apply: Record<string, Json>): MealsSynced {
+  let { profile, plan, tank, bagyoUntil } = m;
+  const trips = new Map(m.trips.map((t) => [t.id, t]));
+  const cooked = new Set(m.cooked);
+  const chores = { ...m.chores };
+  const stock = { ...m.stock };
+  for (const id in apply) {
+    const j = apply[id];
+    const d = j === null ? null : parse(j);
+    const [kind, ...rest] = id.split(':');
+    const key = rest.join(':');
+    if (id === 'profile') profile = d ? (d as unknown as Profile) : null;
+    else if (id === 'tank') tank = d && typeof d.size === 'number' && Array.isArray(d.lasted) ? (d as unknown as Tank) : { ...tank, since: null, lasted: [] };
+    else if (id === 'bagyo') bagyoUntil = d && typeof d.until === 'number' ? d.until : null;
+    else if (kind === 'trip') {
+      if (d && typeof d.amount === 'number' && typeof d.by === 'string') trips.set(key, { id: key, at: Number(d.at) || 0, by: d.by, amount: d.amount, note: String(d.note ?? '') });
+      else trips.delete(key);
+    }
+    else if (id === 'plan') plan = d && Array.isArray(d.slots) ? (d as unknown as Plan) : null;
+    else if (kind === 'cook') {
+      if (d) cooked.add(key);
+      else cooked.delete(key);
+    }
+    else if (kind === 'link') {
+      if (d && typeof d.chore === 'string') chores[key] = d.chore;
+      else delete chores[key];
+    } else if (kind === 'stock') {
+      if (d && typeof d.qty === 'number' && typeof d.at === 'number') stock[key] = { qty: d.qty, at: d.at };
+      else delete stock[key];
+    }
+  }
+  return { profile, plan, cooked: [...cooked], chores, stock, tank, bagyoUntil, trips: [...trips.values()].sort((a, b) => a.at - b.at) };
+}
 
 export const MAX_HISTORY = 1000;
 
@@ -126,10 +192,16 @@ export const TABLES: Spec[] = [
       return { settings: next };
     },
   },
+  {
+    name: 'meals',
+    scope: 'household',
+    rows: (s) => mealRows(s.meals),
+    write: (s, apply) => ({ meals: writeMeals(s.meals, apply) }),
+  },
 ];
 
 /** The store slice each table reads, to skip work when an unrelated part of the state changed. */
-export const SLICE: Record<TableName, keyof Synced> = {
+export const SLICE: Record<Exclude<TableName, 'meals'>, Exclude<keyof Synced, 'meals'>> = {
   chores: 'chores',
   done_history: 'history',
   items: 'items',

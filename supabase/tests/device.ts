@@ -20,13 +20,16 @@ export async function simulatedDevice(db: PGlite, user: { id: string; email: str
   vi.doMock('react-native', () => ({ AppState: { addEventListener: () => ({ remove() {} }), currentState: 'background' }, Platform: { OS: 'web' } }));
   vi.doMock('../../src/lib/supabase', () => ({ supabase: fakeSupabase(db, user) }));
   const { useHome } = await import('../../src/store/useHome');
+  const { useMeals } = await import('../../src/store/useMeals');
   const sync = await import('../../src/lib/sync/engine');
   sync.startSync();
-  while (!useHome.persist.hasHydrated()) await tick();
+  while (!useHome.persist.hasHydrated() || !useMeals.persist.hasHydrated()) await tick();
   await tick(20);
   const home = () => useHome.getState();
   return {
     home,
+    meals: () => useMeals.getState(),
+    useMeals,
     sync,
     useSync: sync.useSync,
     /** Sync and wait until nothing more is queued. */

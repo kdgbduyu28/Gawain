@@ -10,9 +10,11 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 import { create } from 'zustand';
 import { useHome } from '../../store/useHome';
+import { useMeals } from '../../store/useMeals';
+import { NO_TANK } from '../meals/energy';
 import { supabase } from '../supabase';
 import { Json, RemoteRow, TableState, Version, acked, detect, emptyTable, mergeRemote, pullFrom, stableJson } from './merge';
-import { SLICE, Spec, Synced, TABLES, TableName } from './tables';
+import { MealsSynced, SLICE, Spec, Synced, TABLES, TableName } from './tables';
 
 const KEY = 'gawain.sync.v1';
 const PAGE = 1000;
@@ -75,9 +77,13 @@ function save() {
 
 const pendingCount = () => (data ? TABLES.reduce((n, t) => n + Object.keys(data!.tables[t.name].dirty).length, 0) : 0);
 
+function mealsNow(m = useMeals.getState()): MealsSynced {
+  return { profile: m.profile, plan: m.plan, cooked: m.cooked, chores: m.chores, stock: m.stock, tank: m.tank, trips: m.trips, bagyoUntil: m.bagyoUntil };
+}
+
 function synced(): Synced {
   const { chores, history, items, blocks, triggers, settings } = useHome.getState();
-  return { chores, history, items, blocks, triggers, settings };
+  return { chores, history, items, blocks, triggers, settings, meals: mealsNow() };
 }
 
 function detectAll(now: number) {
@@ -89,11 +95,16 @@ function detectAll(now: number) {
 function applyAll(applies: Partial<Record<TableName, Record<string, Json>>>) {
   const specs = TABLES.filter((t) => Object.keys(applies[t.name] ?? {}).length);
   if (!specs.length) return;
+  const meals = specs.find((t) => t.name === 'meals');
+  if (meals) useMeals.setState(meals.write(synced(), applies.meals!).meals!);
+  const home = specs.filter((t) => t !== meals);
+  if (!home.length) return;
   useHome.setState((s) => {
-    let cur: Synced = { chores: s.chores, history: s.history, items: s.items, blocks: s.blocks, triggers: s.triggers, settings: s.settings };
-    for (const spec of specs) cur = { ...cur, ...spec.write(cur, applies[spec.name]!) };
+    let cur: Synced = { chores: s.chores, history: s.history, items: s.items, blocks: s.blocks, triggers: s.triggers, settings: s.settings, meals: mealsNow() };
+    for (const spec of home) cur = { ...cur, ...spec.write(cur, applies[spec.name]!) };
     // An undo snapshot from before the pull would bring back stale rows.
-    return { ...cur, settings: cur.settings as typeof s.settings, undo: null };
+    const { meals: _m, ...rest } = cur;
+    return { ...rest, settings: cur.settings as typeof s.settings, undo: null };
   });
 }
 
@@ -180,7 +191,7 @@ async function firstSync(): Promise<boolean> {
     if (rows.length) remoteHas = true;
   }
   const s = synced();
-  const localHas = s.chores.length + s.items.length + s.history.length + s.blocks.length + s.triggers.length > 0;
+  const localHas = s.chores.length + s.items.length + s.history.length + s.blocks.length + s.triggers.length > 0 || !!s.meals.plan;
   if (remoteHas && localHas && !choice) {
     useSync.setState({ status: 'choose' });
     return false;
@@ -189,6 +200,7 @@ async function firstSync(): Promise<boolean> {
     // Take the account's data. Pull before noting local rows, so nothing here
     // looks newer than it (this device's settings included).
     useHome.setState({ chores: [], history: [], items: [], blocks: [], triggers: [], undo: null });
+    useMeals.setState({ profile: null, plan: null, cooked: [], chores: {}, stock: {}, tank: NO_TANK, trips: [], bagyoUntil: null });
     await pullAll();
     data!.ready = true;
     detectAll(Date.now());
@@ -340,16 +352,17 @@ function forget() {
   useSync.setState({ status: 'off', email: null, error: null, lastSyncedAt: null, pending: 0 });
 }
 
-const hydrated = () =>
+const hydratedStore = (store: typeof useHome | typeof useMeals) =>
   new Promise<void>((resolve) => {
-    if (useHome.persist.hasHydrated()) resolve();
+    if (store.persist.hasHydrated()) resolve();
     else {
-      const off = useHome.persist.onFinishHydration(() => {
+      const off = store.persist.onFinishHydration(() => {
         off();
         resolve();
       });
     }
   });
+const hydrated = () => Promise.all([hydratedStore(useHome), hydratedStore(useMeals)]);
 
 let started = false;
 
@@ -369,23 +382,35 @@ export function startSync() {
     // Never compare against an empty store that just hasn't loaded yet.
     await hydrated();
 
+    const noted = (spec: Spec, rows: Record<string, string>, now: number) => {
+      const t = detect(data!.tables[spec.name], rows, now);
+      if (t === data!.tables[spec.name]) return false;
+      data!.tables[spec.name] = t;
+      return true;
+    };
+    const edited = () => {
+      save();
+      useSync.setState({ pending: pendingCount() });
+      later(AFTER_EDIT_MS);
+    };
     useHome.subscribe((s, prev) => {
       if (!data?.ready) return;
       const now = Date.now();
       let changed = false;
       for (const spec of TABLES) {
+        if (spec.name === 'meals') continue;
         const k = SLICE[spec.name];
         if (s[k] === prev[k]) continue;
-        const t = detect(data.tables[spec.name], spec.rows(s), now);
-        if (t !== data.tables[spec.name]) {
-          data.tables[spec.name] = t;
-          changed = true;
-        }
+        if (noted(spec, spec.rows({ ...s, meals: mealsNow() }), now)) changed = true;
       }
-      if (!changed) return;
-      save();
-      useSync.setState({ pending: pendingCount() });
-      later(AFTER_EDIT_MS);
+      if (changed) edited();
+    });
+    const mealsSpec = TABLES.find((t) => t.name === 'meals')!;
+    useMeals.subscribe((s, prev) => {
+      if (!data?.ready) return;
+      const keys = ['profile', 'plan', 'cooked', 'chores', 'stock', 'tank', 'trips', 'bagyoUntil'] as const;
+      if (keys.every((k) => s[k] === prev[k])) return;
+      if (noted(mealsSpec, mealsSpec.rows({ ...synced(), meals: mealsNow(s) }), Date.now())) edited();
     });
 
     // Don't call Supabase from inside this callback (it can deadlock); schedule instead.

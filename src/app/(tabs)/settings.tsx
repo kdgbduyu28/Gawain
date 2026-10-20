@@ -8,7 +8,13 @@ import { useSync } from '../../lib/sync/engine';
 import { fmtClock, weekdayName } from '../../lib/time';
 import { IS_WEB, WebPermission, downloadJson, installState, onInstallChange, pickJson, promptInstall, requestWebNotify, webNotifyPermission } from '../../lib/web';
 import { useHome } from '../../store/useHome';
+import { Lang, t as tr } from '../../i18n';
 import { C } from '../../theme';
+
+const LANGS: { id: Lang; label: string }[] = [
+  { id: 'en', label: 'English' },
+  { id: 'fil', label: 'Filipino' },
+];
 
 const CONTACT_EMAIL = 'timothyborja28@gmail.com';
 
@@ -156,13 +162,22 @@ export default function Settings() {
 
       {IS_WEB && <WebAppSection />}
 
-      <Section title="Appearance">
-        <Label>Theme</Label>
+      <Section title={tr('Appearance')}>
+        <Label>{tr('Theme')}</Label>
         <Chips>
           {(['system', 'light', 'dark'] as const).map((t) => (
-            <Chip key={t} label={t === 'system' ? 'Match phone' : t[0].toUpperCase() + t.slice(1)} active={settings.theme === t} onPress={() => setSettings({ theme: t })} />
+            <Chip key={t} label={tr(t === 'system' ? 'Match phone' : t[0].toUpperCase() + t.slice(1))} active={settings.theme === t} onPress={() => setSettings({ theme: t })} />
           ))}
         </Chips>
+        <Label>{tr('Language')}</Label>
+        <Chips>
+          {LANGS.map((l) => (
+            <Chip key={l.id} label={l.label} active={settings.lang === l.id} onPress={() => setSettings({ lang: l.id })} />
+          ))}
+        </Chips>
+        <Text style={{ fontSize: 12, color: C.muted, marginTop: 8, lineHeight: 17 }}>
+          {tr('Filipino covers the tabs and the meal planner for now; the rest of Gawain is still in English.')}
+        </Text>
       </Section>
 
       <Section title="Contact">

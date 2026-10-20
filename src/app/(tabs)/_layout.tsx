@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { dueNow } from '../../lib/chores';
 import { useNow } from '../../lib/hooks';
 import { useHome } from '../../store/useHome';
+import { t } from '../../i18n';
 import { C } from '../../theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -38,16 +39,17 @@ export default function TabLayout() {
         sceneStyle: { backgroundColor: C.bg },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny', 'sunny-outline') }} />
+      <Tabs.Screen name="index" options={{ title: t('Today'), tabBarIcon: icon('sunny', 'sunny-outline') }} />
       <Tabs.Screen
         name="chores"
-        options={{ title: 'Chores', tabBarIcon: icon('checkmark-circle', 'checkmark-circle-outline'), tabBarBadge: due || undefined, tabBarBadgeStyle: badge }}
+        options={{ title: t('Chores'), tabBarIcon: icon('checkmark-circle', 'checkmark-circle-outline'), tabBarBadge: due || undefined, tabBarBadgeStyle: badge }}
       />
+      <Tabs.Screen name="meals" options={{ title: t('Meals'), tabBarIcon: icon('restaurant', 'restaurant-outline') }} />
       <Tabs.Screen
         name="groceries"
-        options={{ title: 'Groceries', tabBarIcon: icon('basket', 'basket-outline'), tabBarBadge: onList || undefined, tabBarBadgeStyle: badge }}
+        options={{ title: t('Groceries'), tabBarIcon: icon('basket', 'basket-outline'), tabBarBadge: onList || undefined, tabBarBadgeStyle: badge }}
       />
-      <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: icon('settings', 'settings-outline') }} />
+      <Tabs.Screen name="settings" options={{ title: t('Settings'), tabBarIcon: icon('settings', 'settings-outline') }} />
     </Tabs>
   );
 }

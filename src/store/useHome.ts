@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Lang } from '../i18n';
+import { emit } from '../lib/events';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { STARTER_CHORES, STARTER_ITEMS } from '../data/starters';
@@ -14,6 +16,8 @@ export type Place = { id: string; name: string; kind: 'home' | 'store'; lat: num
 
 export type Settings = {
   theme: 'system' | 'light' | 'dark';
+  /** App language. Device only, like the theme. */
+  lang: Lang;
   schedule: Schedule;
   /** Morning summary time, or null for none. */
   digest: Clock | null;
@@ -35,6 +39,7 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
+  lang: 'en',
   schedule: {
     workDays: [1, 2, 3, 4, 5],
     workStart: '09:00',
@@ -96,6 +101,8 @@ type Actions = {
   buy(id: string): void;
 
   startTimer(label: string, icon: string, minutes: number): void;
+  /** Switch a Home Assistant plug on at `at` (the rice cooker), while Gawain is open. */
+  schedulePlug(label: string, at: number, plug: string): void;
   stopTimer(id: string): void;
 
   saveTrigger(t: Omit<Trigger, 'id' | 'createdAt' | 'reportsFinish'> & Partial<Trigger>): string;
@@ -205,6 +212,7 @@ export const useHome = create<State & Actions>()(
           if (!c) return;
           remember(`${c.name} done`);
           set((s) => withDone(s.chores, s.history, id, at, MAX_HISTORY) ?? {});
+          emit({ type: 'done', choreId: id, at });
         },
 
         snooze(id, days) {
@@ -253,6 +261,7 @@ export const useHome = create<State & Actions>()(
           if (!i) return;
           remember(`Bought ${i.name}`);
           const now = Date.now();
+          emit({ type: 'bought', name: i.name, note: i.note, at: now });
           set((s) => ({
             items: i.tracked ? s.items.map((x) => (x.id === id ? withBought(x, now) : x)) : s.items.filter((x) => x.id !== id),
           }));
@@ -261,6 +270,11 @@ export const useHome = create<State & Actions>()(
         startTimer(label, icon, minutes) {
           const now = Date.now();
           set((s) => ({ timers: [...s.timers, { id: uid(), label, icon, startedAt: now, endsAt: now + minutes * MIN }] }));
+        },
+
+        schedulePlug(label, at, plug) {
+          const now = Date.now();
+          set((s) => ({ timers: [...s.timers.filter((t) => !(t.plug === plug && t.label === label)), { id: uid(), label, icon: 'power-outline', startedAt: now, endsAt: at, plug }] }));
         },
 
         stopTimer(id) {

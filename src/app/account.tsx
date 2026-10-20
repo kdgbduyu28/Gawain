@@ -49,7 +49,7 @@ export default function AccountScreen() {
 
       <Section title="What syncs">
         <Text style={styles.help}>
-          Signed in, your chores, done history, pantry, grocery list, weekly meetings, work hours and smart-home triggers are kept in your account and synced
+          Signed in, your chores, done history, pantry, grocery list, meal plan (with what's been cooked and what's in the kitchen), weekly meetings, work hours and smart-home triggers are kept in your account and synced
           between your phone and browsers. When two devices change the same thing, the later change wins.
         </Text>
         <Text style={[styles.help, { marginTop: 8 }]}>

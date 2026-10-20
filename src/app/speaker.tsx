@@ -16,7 +16,7 @@ export default function SpeakerScreen() {
   const setSettings = useHome((s) => s.setSettings);
   const set = (p: Partial<Announce>) => setSettings({ announce: { ...useHome.getState().settings.announce, ...p } });
 
-  const [found, setFound] = useState<{ speakers: HaEntity[]; voices: HaEntity[] } | null>(null);
+  const [found, setFound] = useState<{ speakers: HaEntity[]; voices: HaEntity[]; switches: HaEntity[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -126,6 +126,22 @@ export default function SpeakerScreen() {
           )}
           <View style={styles.buttons}>
             <Button small icon="volume-high-outline" label="Say a test" onPress={test} disabled={!ready(a) || busy} />
+          </View>
+          <View style={{ marginTop: 18 }}>
+            <Label>Rice cooker plug (optional)</Label>
+            {found?.switches.length ? (
+              <Chips>
+                <Chip label="None" active={!a.ricePlug} onPress={() => set({ ricePlug: '' })} />
+                {found.switches.map((e) => (
+                  <Chip key={e.id} icon="power-outline" label={e.name} active={a.ricePlug === e.id} onPress={() => set({ ricePlug: e.id })} />
+                ))}
+              </Chips>
+            ) : (
+              <Field value={a.ricePlug} onChangeText={(ricePlug) => set({ ricePlug: ricePlug.trim() })} placeholder="switch.rice_cooker" autoCapitalize="none" />
+            )}
+            <Text style={styles.hint}>
+              A smart plug the rice cooker is plugged into, with the switch already down. Meal plans can then switch it on at the right time before a meal, while Gawain is open.
+            </Text>
           </View>
         </Section>
       )}

@@ -12,18 +12,21 @@ import { startSync } from '../lib/sync/engine';
 import { IS_WEB } from '../lib/web';
 // Registers the background geofence task at startup (phone builds only).
 import '../lib/places';
+import { setLang } from '../i18n';
 import { useHome } from '../store/useHome';
 import { C, Scheme, setScheme } from '../theme';
 
 export default function RootLayout() {
   const system = useColorScheme();
   const pref = useHome((s) => s.settings.theme);
+  const lang = useHome((s) => s.settings.lang);
   // Signed out (or in builds without Supabase) this does nothing.
   useEffect(startSync, []);
   const scheme: Scheme = pref === 'system' ? (system === 'dark' ? 'dark' : 'light') : pref;
   // Swap the palette before anything below renders; the key re-renders the
   // whole app so every screen and cached style picks up the change.
   setScheme(scheme);
+  setLang(lang);
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
   const navTheme = {
     ...base,
@@ -34,7 +37,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
-          <View key={scheme} style={{ flex: 1, backgroundColor: C.bg }}>
+          <View key={`${scheme}-${lang}`} style={{ flex: 1, backgroundColor: C.bg }}>
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
               <Stack.Screen name="(tabs)" />
@@ -43,6 +46,12 @@ export default function RootLayout() {
               <Stack.Screen name="item" options={{ presentation: 'modal' }} />
               <Stack.Screen name="timer" options={{ presentation: 'modal' }} />
               <Stack.Screen name="calendars" />
+              <Stack.Screen name="meals/setup" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="meals/dish" />
+              <Stack.Screen name="meals/list" />
+              <Stack.Screen name="meals/cook" />
+              <Stack.Screen name="meals/party" />
+              <Stack.Screen name="meals/split" />
               <Stack.Screen name="account" />
               <Stack.Screen name="smarthome" />
               <Stack.Screen name="speaker" />

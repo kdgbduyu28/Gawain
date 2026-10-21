@@ -6,6 +6,9 @@
 #   ./scripts/release.sh --no-deploy   # build only
 #   ./scripts/release.sh --clean       # clear the bundler cache first
 #
+# After a successful deploy the built dist/ folder is deleted (it's on Cloudflare
+# now); the bundler cache is kept so the next build is fast. --no-deploy keeps dist/.
+#
 # Same Cloudflare account and flow as health-platform-fe/scripts/release.sh.
 # Always a production deploy, whatever git branch you are on.
 
@@ -24,7 +27,7 @@ for arg in "$@"; do
   case "$arg" in
     --no-deploy) DEPLOY=false ;;
     --clean)     CLEAN=true ;;
-    -h|--help)   sed -n '3,9p' "$0"; exit 0 ;;
+    -h|--help)   sed -n '3,12p' "$0"; exit 0 ;;
     *) echo "release.sh: unknown option '$arg'" >&2; exit 2 ;;
   esac
 done
@@ -101,3 +104,7 @@ echo "==> deploying to Cloudflare Pages project ${PROJECT}"
 domain="$("${WRANGLER[@]}" pages project list </dev/null 2>/dev/null | awk -F'│' -v p="$PROJECT" '{gsub(/ /,"",$2)} $2==p {gsub(/ /,"",$3); print $3}')"
 echo ""
 echo "Live: https://${domain:-${PROJECT}.pages.dev}"
+
+# Only reached when the deploy succeeded (set -e stops on any failure above).
+rm -rf "$ROOT/dist"
+echo "Removed local build (dist/)"

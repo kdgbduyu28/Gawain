@@ -5,6 +5,8 @@
 #   ./scripts/release.sh               # build + deploy to gawain-ccn.pages.dev
 #   ./scripts/release.sh --no-deploy   # build only
 #   ./scripts/release.sh --clean       # clear the bundler cache first
+#   ./scripts/release.sh --apk         # Android: tag + push; GitHub builds the APK into Releases
+#   ./scripts/release.sh --apk=v1.2.0  # same, with an explicit version (default: app.json)
 #
 # After a successful deploy the built dist/ folder is deleted (it's on Cloudflare
 # now); the bundler cache is kept so the next build is fast. --no-deploy keeps dist/.
@@ -22,15 +24,59 @@ export WRANGLER_SEND_METRICS=false
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEPLOY=true
 CLEAN=false
+APK=false
+APK_TAG=
 
 for arg in "$@"; do
   case "$arg" in
     --no-deploy) DEPLOY=false ;;
     --clean)     CLEAN=true ;;
-    -h|--help)   sed -n '3,12p' "$0"; exit 0 ;;
+    --apk)       APK=true ;;
+    --apk=*)     APK=true; APK_TAG="${arg#--apk=}" ;;
+    -h|--help)   sed -n '3,14p' "$0"; exit 0 ;;
     *) echo "release.sh: unknown option '$arg'" >&2; exit 2 ;;
   esac
 done
+
+# --apk: tag this commit and push the tag. GitHub Actions
+# (.github/workflows/android-release.yml) builds the APK from that tag and attaches it to
+# the repository's Releases page, so nothing is built here and it costs nothing.
+release_apk() {
+  local tag="$1"
+  cd "$ROOT"
+  [[ -n "$tag" ]] || tag="v$(node -p 'require("./app.json").expo.version')"
+  [[ "$tag" == v* ]] || tag="v$tag"
+  if ! git remote get-url origin >/dev/null 2>&1; then
+    echo "release.sh: no GitHub remote yet; create the repo and push it first" >&2
+    exit 1
+  fi
+  if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+    echo "release.sh: commit your changes first; the APK is built from GitHub, not this folder" >&2
+    exit 1
+  fi
+  git fetch --quiet origin
+  if ! git merge-base --is-ancestor HEAD '@{u}' 2>/dev/null; then
+    echo "release.sh: push this branch first (git push); the APK is built from GitHub" >&2
+    exit 1
+  fi
+  if git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null \
+      || git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+    echo "release.sh: $tag already exists; bump the version or pass --apk=vX.Y.Z" >&2
+    exit 1
+  fi
+  git tag -a "$tag" -m "$tag"
+  git push --quiet origin "refs/tags/$tag"
+  local repo
+  repo="$(git remote get-url origin | sed -E 's#^(git@github\.com:|https://github\.com/)##; s#\.git$##')"
+  echo "Tagged $tag; GitHub Actions is building the APK (15-25 min):"
+  echo "  progress: https://github.com/$repo/actions/workflows/android-release.yml"
+  echo "  download: https://github.com/$repo/releases/tag/$tag"
+}
+
+if [[ "$APK" == true ]]; then
+  release_apk "$APK_TAG"
+  exit 0
+fi
 
 if [[ "$DEPLOY" == true ]]; then
   echo "==> checking Cloudflare login"

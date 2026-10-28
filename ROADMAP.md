@@ -20,7 +20,7 @@
 - Side navigation on wide screens
 - Back up to a file / restore (browser data can be cleared; Safari clears sites unused for 7 days unless installed)
 
-## Built (sync, not deployed yet)
+## Built (sync, live)
 
 - Optional sign-in (Settings → Account & sync): Google or email link. Signed out, nothing changes
 - Own Supabase project `gawain` (ref jiowntosdcsxrqthmzzq, Singapore), separate from the health platform. DB password in the macOS Keychain as `gawain-supabase-db`
@@ -28,7 +28,7 @@
 - Stays on the device: calendar links and calendar choices, saved places and each item's store, timers, theme, notification toggles
 - Tests: merge logic, table mapping, migrations + policies in PGlite, and a multi-device sync test running the real engine against them
 
-## Built (smart home, not deployed yet)
+## Built (smart home, live)
 
 - Settings → Smart home: a private link per household (only a hash is stored; make a new one or turn it off any time) and triggers that sync with the household
 - Trigger kinds: "marks a chore done" (Zigbee/Tuya button, NFC tag with an iPhone Shortcut, robot vacuum docking) and "appliance timer" (smart plug on the washer: started / finished)
@@ -38,7 +38,7 @@
 - Migration `20261019120000_smart_home.sql`; tests for the logic, the database rules, the Pages Function and two devices end to end
 - Settings → Say reminders out loud: Home Assistant address + long-lived token + speaker + voice (picked from HA's own list), all on the device only and left out of backups; calls `tts.speak` when a reminder fires (appliance timers and morning summary by default, free-time nudges optional), never during a meeting or outside your day. Works in the browser (needs the site in HA's CORS allowed origins) and on phones while Gawain is open; no account needed
 
-## Built (meal planner, not committed or deployed yet)
+## Built (meal planner, live)
 
 - Meals tab with a 10-step questionnaire: where you shop (palengke / supermarket / both) and region, adults and kids, meals and cooking days, kitchen equipment, restrictions, goals (high protein, low carb, GLP-1), cuisines, vibe (quick, one pan, batch, tipid, kid friendly, comfort, healthy, no cook), allergies, dislikes, what you already have, weekly budget with live stats (plates a week, per plate, tipid vs typical week, Very tight → Comfortable)
 - Prices from Presyo's published data (presyo.pages.dev/data, open CORS): PSA regional retail, DA Metro Manila markets, DTI SRP; estimates for the rest. About 60% of ingredients priced from government data in NCR
